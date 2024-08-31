@@ -1,0 +1,81 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: shahu-pg-cluster
+  namespace: shahu-ski
+spec:
+  instances: 3
+  primaryUpdateStrategy: unsupervised
+  imageName: ghcr.io/cloudnative-pg/postgresql:15
+  minSyncReplicas: 1
+  maxSyncReplicas: 2
+  storage:
+    pvcTemplate:
+      accessModes:
+        - ReadWriteOnce
+      storageClassName: rook-ceph-block
+      resources:
+        requests:
+          storage: 70Gi
+
+  # pg設定
+  postgresql:
+    parameters:
+      max_connections: "128"
+      shared_buffers: "4GB"
+      effective_cache_size: "6GB"
+      maintenance_work_mem: "512MB"
+      checkpoint_completion_target: "0.7"
+      wal_buffers: "16MB"
+      default_statistics_target: "100"
+      random_page_cost: "1.1"
+      effective_io_concurrency: "300"
+      work_mem: "1GB"
+      min_wal_size: "1GB"
+      max_wal_size: "4GB"
+      max_worker_processes: "4"
+      max_parallel_workers_per_gather: "2"
+      max_parallel_workers: "4"
+      max_parallel_maintenance_workers: "2"
+
+  superuserSecret: 
+    name: pg-admin-secret
+
+  # 起動時の設定
+  bootstrap:
+    initdb:
+      database: mk1
+      owner: misskey
+      secret:
+        name: postgres-local-user-secret # 上記ownerのパスワードについて。kubernetesの公式を参照
+
+  backup:
+    barmanObjectStore:
+      destinationPath: "s3://shahu-backup/pg/"
+      endpointURL: "https://a8e8211c674c2b00f3a8996b65b56447.r2.cloudflarestorage.com/shahu-backup"
+      
+      # S3のパスワード設定。これはKubernetesのsecretを利用している。
+      # https://kubernetes.io/ja/docs/concepts/configuration/secret/
+      s3Credentials:
+        accessKeyId:
+          name: creds
+          key: ACCESS_KEY_ID
+        secretAccessKey:
+          name: creds
+          key: ACCESS_SECRET_KEY
+      wal:
+        compression: gzip
+    retentionPolicy: "30d" # 30日で削除
+---
+
+# backupサイクル設定 CloudNativePGのページを参照
+# https://cloudnative-pg.io/documentation/1.16/backup_recovery/
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: backup-shahu-pg
+spec:
+  schedule: "0 */12 * * *"
+  backupOwnerReference: self
+  cluster:
+    name: shahu-pg-cluster
