@@ -14,7 +14,7 @@ data:
   username: cG9zdGdyZXM=
 kind: Secret
 metadata:
-  name: cluster-example-superuser
+  name: pg-admin-secret
 type: kubernetes.io/basic-auth
 ---
 
