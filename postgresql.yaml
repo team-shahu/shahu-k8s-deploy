@@ -1,3 +1,23 @@
+apiVersion: v1
+data:
+  username: bWlzc2tleQ==
+  password: RVFkdTl6b1I2aGNaQ28=
+kind: Secret
+metadata:
+  name: misskey-local-user-secret
+type: kubernetes.io/basic-auth
+---
+
+apiVersion: v1
+data:
+  password: dU4zaTFIaDBiWWJDYzRUeVZBYWNCaG1TemdxdHpxeG1PVmpBbjBRSUNoc0pyU211OVBZMmZ3MnE4RUtLTHBaOQ==
+  username: cG9zdGdyZXM=
+kind: Secret
+metadata:
+  name: cluster-example-superuser
+type: kubernetes.io/basic-auth
+---
+
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
@@ -47,35 +67,4 @@ spec:
       database: mk1
       owner: misskey
       secret:
-        name: postgres-local-user-secret # 上記ownerのパスワードについて。kubernetesの公式を参照
-
-  backup:
-    barmanObjectStore:
-      destinationPath: "s3://shahu-backup/pg/"
-      endpointURL: "https://a8e8211c674c2b00f3a8996b65b56447.r2.cloudflarestorage.com/shahu-backup"
-      
-      # S3のパスワード設定。これはKubernetesのsecretを利用している。
-      # https://kubernetes.io/ja/docs/concepts/configuration/secret/
-      s3Credentials:
-        accessKeyId:
-          name: creds
-          key: ACCESS_KEY_ID
-        secretAccessKey:
-          name: creds
-          key: ACCESS_SECRET_KEY
-      wal:
-        compression: gzip
-    retentionPolicy: "30d" # 30日で削除
----
-
-# backupサイクル設定 CloudNativePGのページを参照
-# https://cloudnative-pg.io/documentation/1.16/backup_recovery/
-apiVersion: postgresql.cnpg.io/v1
-kind: ScheduledBackup
-metadata:
-  name: backup-shahu-pg
-spec:
-  schedule: "0 */12 * * *"
-  backupOwnerReference: self
-  cluster:
-    name: shahu-pg-cluster
+        name: misskey-local-user-secret # 上記ownerのパスワードについて。kubernetesの公式を参照
