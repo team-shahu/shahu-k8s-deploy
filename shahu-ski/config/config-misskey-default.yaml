@@ -51,7 +51,8 @@ data:
       #disableCache: true
 
       # Extra Connection options
-      #extra:
+      extra:
+        statement_timeout: 300000
       #  ssl: true
 
     dbReplications: false
