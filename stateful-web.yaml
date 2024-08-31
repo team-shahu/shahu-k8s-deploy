@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-service
+  namespace: shahu-ski
+spec:
+#  type: ClusterIP
+  selector:
+    app: web #-deployment
+  clusterIP: None
+  ports:
+  - name: http
+    port: 80
+    targetPort: 3000
+#    nodePort: 300080
+#    protocol: TCP
+
+---
+
+kind: StatefulSet
+apiVersion: apps/v1
+metadata:
+  name: web-deployment
+  namespace: shahu-ski
+  labels:
+    deploy: web
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: "75%"
+      maxSurge: "50%"
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+      - name: web
+        image: ghcr.io/team-shahu/misskey:latest
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - mountPath: /misskey/.config
+          name: shahu-default-conf-file
+        ports:
+        - containerPort: 3000
+        # Podの準備が出来ているかの確認用
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+            scheme: HTTP
+      volumes:
+      - name: shahu-default-conf-file
+        configMap:
+          name: shahu-default-config
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: web-ingress
+  namespace: shahu-ski
+  annotations:
+     nginx.ingress.kubernetes.io/proxy-body-size: 200m
+     nginx.ingress.kubernetes.io/real-ip-header: "X-Real-IP"
+     nginx.ingress.kubernetes.io/real-ip-header: "CF-Connecting-IP"
+     nginx.ingress.kubernetes.io/set-forwarded-for: "true"
+     nginx.ingress.kubernetes.io/use-forwarded-headers: "true"
+#    kubernetes.io/ingress.class: "nginx"
+#    kubernetes.io/tls-acme: "true"
+#    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+#    cert-manager.io/issuer: "letsencrypt-staging" 
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: shahu.ski
+      http:
+        paths:
+          - pathType: Prefix
+            backend:
+              service:
+                name: web-service
+                port:
+                  number: 80
+            path: /
