@@ -42,10 +42,6 @@ spec:
     volumeMounts:
     - mountPath: /data
       name: redis-volume
-    resources:
-      limits:
-        memory: "100Mi"
-        cpu: "250m"
     ports:
     - containerPort: 6379
   volumes:
